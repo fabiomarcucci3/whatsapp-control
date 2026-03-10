@@ -1,10 +1,10 @@
 {
-  "name": "app-prenotazioni",
+  "name": "agente-bookly",
   "version": "1.0.0",
-  "description": "App Prenotazioni Fast Car",
+  "description": "Agente Bookly",
   "main": "index.js",
   "scripts": {
-    "start": "node send_message.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "dotenv": "^17.3.1",
@@ -13,6 +13,7 @@
     "mailparser": "^3.9.4",
     "msedge-tts": "^2.0.4",
     "node-cron": "^4.2.1",
+    "node-firebird": "^2.0.2",
     "nodemailer": "^8.0.2"
   }
 }
