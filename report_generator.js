@@ -163,7 +163,7 @@ function parseBookingData(subject, bodyHtml) {
 // ============================================================
 // FETCH EMAIL TRAMITE IMAP
 // ============================================================
-async function fetchEmailsFromImap(targetDate) {
+async function fetchEmailsFromImap(startDate, endDate) {
   let connection;
   const results = [];
   try {
@@ -171,17 +171,26 @@ async function fetchEmailsFromImap(targetDate) {
     connection = await imaps.connect(imapConfig);
     await connection.openBox('INBOX');
 
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const d = targetDate.getDate();
-    const m = months[targetDate.getMonth()];
-    const y = targetDate.getFullYear();
-    const dateStr = `${d}-${m}-${y}`;
+    const formatImapDate = (date) => {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return `${date.getDate()}-${months[date.getMonth()]}-${date.getFullYear()}`;
+    };
 
-    console.log(`[IMAP] Ricerca email del ${dateStr}...`);
+    const startStr = formatImapDate(startDate);
     
-    // Sfruttiamo il server IMAP per filtrare in modo nativo e veloce
-    const searchPrenotazioni = [['ON', dateStr], ['SUBJECT', 'prenotazione']];
-    const searchCancellazioni = [['ON', dateStr], ['SUBJECT', 'cancellazione']];
+    let searchPrenotazioni, searchCancellazioni;
+    if (endDate && endDate.toDateString() !== startDate.toDateString()) {
+      const endPlusOne = new Date(endDate);
+      endPlusOne.setDate(endPlusOne.getDate() + 1);
+      const endStr = formatImapDate(endPlusOne);
+      console.log(`[IMAP] Ricerca email nel range dal ${startStr} al ${formatImapDate(endDate)}...`);
+      searchPrenotazioni = [['SINCE', startStr], ['BEFORE', endStr], ['SUBJECT', 'prenotazione']];
+      searchCancellazioni = [['SINCE', startStr], ['BEFORE', endStr], ['SUBJECT', 'cancellazione']];
+    } else {
+      console.log(`[IMAP] Ricerca email del singolo giorno ${startStr}...`);
+      searchPrenotazioni = [['ON', startStr], ['SUBJECT', 'prenotazione']];
+      searchCancellazioni = [['ON', startStr], ['SUBJECT', 'cancellazione']];
+    }
     
     const fetchOptions = { bodies: [''], markSeen: false };
     
@@ -201,7 +210,20 @@ async function fetchEmailsFromImap(targetDate) {
       
       const booking = parseBookingData(subject, bodyHtml);
       if (booking.numero) {
-        results.push(booking);
+        // Double check date matching locally per non incappare in differenze fusi orario IMAP estreme
+        let include = true;
+        if (booking.data) {
+           const [dd, mm, yyyy] = booking.data.split('/');
+           const bDate = new Date(yyyy, mm - 1, dd);
+           if (endDate) {
+              const startCheck = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+              const endCheck = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59);
+              if (bDate < startCheck || bDate > endCheck) include = false;
+           } else {
+              if (bDate.getDate() !== startDate.getDate() || bDate.getMonth() !== startDate.getMonth()) include = false;
+           }
+        }
+        if (include) results.push(booking);
       }
     }
 
@@ -216,8 +238,8 @@ async function fetchEmailsFromImap(targetDate) {
 // ============================================================
 // GENERAZIONE DATI REPORT
 // ============================================================
-async function generateBookingData(targetDate) {
-  const allBookings = await fetchEmailsFromImap(targetDate);
+async function generateBookingData(startDate, endDate) {
+  const allBookings = await fetchEmailsFromImap(startDate, endDate);
   
   const uniqueBookings = {};
   allBookings.forEach(b => {
@@ -330,16 +352,87 @@ function buildReportText(data) {
 }
 
 // ============================================================
-// GENERAZIONE AUDIO
+// TESTI MENSILI E SETTIMANALI
 // ============================================================
-async function getVoiceReport(targetDate = new Date()) {
+
+function buildWeeklyReportText(data) {
+  let text = `Ciao Fabio! Ecco il resoconto aggregato di tutta l'ultima settimana. `;
+  
+  if (data.totale === 0 && data.cancellate === 0) {
+    text += `Questa settimana non ci sono state registrazioni. Buon proseguimento!`;
+    return text;
+  }
+  
+  text += `Negli ultimi sette giorni abbiamo elaborato un totale di ${data.totale} nuove prenotazioni e ${data.cancellate} cancellazioni. `;
+  text += `L'incasso totale stimato della settimana è di ${data.incasso} euro, di cui ${data.incassoServizi} per i servizi principali e ${data.incassoAggiunti} euro di servizi aggiuntivi. `;
+  
+  text += `Siamo a quota ${data.proprie} appuntamenti nelle officine proprie, e ${data.autorizzate} negli autorizzati. `;
+  
+  const servizi = Object.entries(data.perServizio).sort((a, b) => b[1] - a[1]);
+  if (servizi.length > 0) {
+    text += `Il servizio di punta della settimana è stato ${servizi[0][0]} con ${servizi[0][1]} lavorazioni. `;
+  }
+  
+  text += `Ottima settimana, avanti così verso l'obiettivo!`;
+  return text;
+}
+
+function buildMonthlyReportText(data, priorData) {
+  let text = `Ciao Fabio! È il primo del mese e questo è il momento del grande resoconto mensile cumulativo. `;
+  
+  if (data.totale === 0) {
+    text += `Il mese appena concluso non ha registrato alcuna operazione dal bot. `;
+    return text;
+  }
+  
+  text += `Il mese spettacolare si è chiuso con un totale di ${data.totale} prenotazioni, rispetto alle ${priorData.totale} del mese prima. `;
+  
+  const pct = priorData.totale > 0 ? (((data.totale - priorData.totale) / priorData.totale) * 100).toFixed(1) : 100;
+  if (data.totale >= priorData.totale) {
+    text += `Abbiamo un incremento del ${pct} percento di appuntamenti! Magnifico! `;
+  } else {
+    text += `C'è stata una lieve flessione del ${Math.abs(pct)} percento rispetto al mese anteriore. `;
+  }
+  
+  text += `L'incasso complessivo sviluppato in questi trenta giorni è di ben ${data.incasso} euro totali. Di questi, ${data.incassoAggiunti} euro sono frutto unicamente dei servizi aggiuntivi inseriti a sistema. `;
+  
+  text += `Delle ${data.totale} lavorazioni, ${data.proprie} si sono tenute nelle tue basi e ${data.autorizzate} negli esterni. `;
+  if (data.cancellate > 0) text += `Abbiamo subìto ${data.cancellate} rinunce, portando a una defezione stima di ${data.perditaCancellazioni} euro. `;
+  
+  text += `Un grandissimo applauso per gli sforzi di questo mese. Puntiamo diretti a superare questo record il mese prossimo. Buon Lavoro!`;
+  return text;
+}
+
+// ============================================================
+// GENERAZIONE AUDIO E ORCHESTRAZIONE
+// ============================================================
+async function getVoiceReport(config = new Date()) {
   try {
-    console.log('[Report] Elaborazione dati dal server IMAP (commerciale@fast-car.it)...');
-    const data = await generateBookingData(targetDate);
+    let type = 'daily';
+    let data, priorData, textToSpeak;
     
-    const textToSpeak = buildReportText(data);
+    // Retrocompatibilità per Daily
+    if (config instanceof Date || !config.type) {
+        config = { type: 'daily', targetDate: config instanceof Date ? config : new Date() };
+    }
+    
+    type = config.type;
+
+    console.log(`[Report] Elaborazione dati dal server IMAP in modalita: ${type.toUpperCase()}...`);
+    
+    if (type === 'daily') {
+       data = await generateBookingData(config.targetDate);
+       textToSpeak = buildReportText(data);
+    } else if (type === 'weekly') {
+       data = await generateBookingData(config.startDate, config.endDate);
+       textToSpeak = buildWeeklyReportText(data);
+    } else if (type === 'monthly') {
+       data = await generateBookingData(config.startDate, config.endDate);
+       priorData = await generateBookingData(config.priorStartDate, config.priorEndDate);
+       textToSpeak = buildMonthlyReportText(data, priorData);
+    }
+    
     console.log('[Report] Testo generato:', textToSpeak);
-    
     console.log('[Report] Dettagli: Nuove=' + data.totale + ' Cancellate=' + data.cancellate +
       ' Proprie=' + data.proprie + ' Autorizzate=' + data.autorizzate);
     

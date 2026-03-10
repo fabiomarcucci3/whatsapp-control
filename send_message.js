@@ -60,7 +60,47 @@ function setupCronJobs() {
         console.log('\n[CRON] Esecuzione job 00:01: Invio Email Definitiva (Tutti)');
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        sendEmailReport(yesterday, true);
+        sendEmailReport({ type: 'daily', targetDate: yesterday }, true);
+    }, {
+        scheduled: true,
+        timezone: "Europe/Rome"
+    });
+
+    // Ore 00:01 (DOMENICA): Report della Settimana precedente (Solo Titolare)
+    // 0 nel cron day-of-week è Domenica.
+    cron.schedule('1 0 * * 0', () => {
+        console.log('\n[CRON] Esecuzione job Domenica 00:01: Invio Email Settimanale (Solo Titolare)');
+        const end = new Date();
+        end.setDate(end.getDate() - 1); // Sabato
+        const start = new Date(end);
+        start.setDate(start.getDate() - 6); // Domenica precedente
+        sendEmailReport({ type: 'weekly', startDate: start, endDate: end }, false);
+    }, {
+        scheduled: true,
+        timezone: "Europe/Rome"
+    });
+
+    // Ore 00:05 (1° DEL MESE): Report del Mese precedente con comparazione (Solo Titolare)
+    cron.schedule('5 0 1 * *', () => {
+        console.log('\n[CRON] Esecuzione job 1° Mese 00:05: Invio Email Mensile Mese Scorso (Solo Titolare)');
+        
+        // Mese precedente: dal giorno 1 all'ultimo giorno
+        const endLastMonth = new Date();
+        endLastMonth.setDate(0); 
+        const startLastMonth = new Date(endLastMonth.getFullYear(), endLastMonth.getMonth(), 1);
+        
+        // Mese antecedente per la comparazione: dal giorno 1 all'ultimo giorno
+        const endPriorMonth = new Date(startLastMonth);
+        endPriorMonth.setDate(0);
+        const startPriorMonth = new Date(endPriorMonth.getFullYear(), endPriorMonth.getMonth(), 1);
+
+        sendEmailReport({
+            type: 'monthly',
+            startDate: startLastMonth,
+            endDate: endLastMonth,
+            priorStartDate: startPriorMonth,
+            priorEndDate: endPriorMonth
+        }, false);
     }, {
         scheduled: true,
         timezone: "Europe/Rome"
@@ -73,10 +113,14 @@ setupCronJobs();
 // Il sistema ora resta in ascolto passivo dei Cron Jobs per inviare ai tempi stabiliti.
 
 // ----- FUNZIONE DI INVIO EMAIL -----
-async function sendEmailReport(targetDate, sendToAll) {
+async function sendEmailReport(config, sendToAll) {
     try {
-        console.log(`[Report] Genero resoconto testuale e vocale per la data ${targetDate.toISOString().split('T')[0]}...`);
-        const { text, audioPath } = await getVoiceReport(targetDate);
+        let type = 'daily';
+        if (config.type) type = config.type;
+        else config = { type: 'daily', targetDate: config };
+
+        console.log(`[Report] Inizio generazione procedura email ${type.toUpperCase()}...`);
+        const { text, audioPath } = await getVoiceReport(config);
         
         let destinatari = DEST_TITOLARE;
         if (sendToAll) {
@@ -91,16 +135,25 @@ async function sendEmailReport(targetDate, sendToAll) {
         let attachments = [];
         if (fs.existsSync(audioPath)) {
             attachments.push({
-                filename: 'ReportVocale_FastCar.mp3',
+                filename: `ReportVocale_${type.toUpperCase()}.mp3`,
                 path: audioPath,
                 contentType: 'audio/mpeg'
             });
         }
 
+        let subjectLine = '';
+        if (type === 'daily') {
+             subjectLine = `📊 Report FastCar del ${config.targetDate.toLocaleDateString('it-IT')}`;
+        } else if (type === 'weekly') {
+             subjectLine = `📅 Report Settimanale FastCar (${config.startDate.toLocaleDateString('it-IT')} - ${config.endDate.toLocaleDateString('it-IT')})`;
+        } else if (type === 'monthly') {
+             subjectLine = `🏆 Report MENSILE FastCar (${config.startDate.toLocaleDateString('it-IT')} - ${config.endDate.toLocaleDateString('it-IT')})`;
+        }
+
         const info = await transporter.sendMail({
             from: `"Automazione FastCar" <${process.env.IMAP_USER}>`,
             to: destinatari,
-            subject: `📊 Report FastCar del ${targetDate.toLocaleDateString('it-IT')}`,
+            subject: subjectLine,
             text: `Ciao! In allegato trovi il tuo report vocale quotidiano.\n\nEcco il riepilogo testuale:\n\n${text}\n\nBuon Lavoro!\nApp Prenotazioni`,
             attachments: attachments
         });
