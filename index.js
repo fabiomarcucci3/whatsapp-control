@@ -15,7 +15,7 @@ app.listen(port, () => console.log(`[HTTP] Server web avviato sulla porta ${port
 const hybridAgent = require('./hybrid_agent.js');
 
 const DEST_FABIO = 'fabiomarcucci70@gmail.com';
-const DEST_MONICA = process.env.EMAIL_MONICA || 'monica@fastcar.it'; // Cambiare nel file .env se diversa
+const DEST_MONICA = process.env.EMAIL_MONICA || 'monica10.mm@gmail.com'; // Aggiornato con l'indirizzo reale
 
 const transporter = nodemailer.createTransport({
     host: process.env.IMAP_HOST,
