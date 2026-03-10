@@ -224,14 +224,21 @@ function buildHybridReportText(type, data, priorData = null, startDate = null) {
 
     let label = 'DI OGGI';
     if (type === 'weekly') label = 'SETTIMANALE';
+    if (type === 'chiusura') label = 'DI FINE GIORNATA';
     if (type === 'monthly') {
         const mesi = ['GENNAIO', 'FEBBRAIO', 'MARZO', 'APRILE', 'MAGGIO', 'GIUGNO', 'LUGLIO', 'AGOSTO', 'SETTEMBRE', 'OTTOBRE', 'NOVEMBRE', 'DICEMBRE'];
         const meseNome = startDate ? mesi[new Date(startDate).getMonth()] : '';
         label = `MENSILE di ${meseNome}`;
     }
 
-    let text = `Ecco il resoconto ${label} DELLE PRENOTAZIONI SUL PORTALE FAST CAR PUNTO I T. `;
-    text += `Abbiamo ricevuto ${r.totale} nuove prenotazioni complessive. `;
+    let text = "";
+    if (type === 'chiusura') {
+        text = `Ecco il RIEPILOGO DI CHIUSURA DI FINE GIORNATA FAST CAR. `;
+        text += `Oggi abbiamo totalizzato ${r.totale} lavorazioni valide. `;
+    } else {
+        text = `Ecco il resoconto ${label} DELLE PRENOTAZIONI SUL PORTALE FAST CAR PUNTO I T. `;
+        text += `Abbiamo ricevuto ${r.totale} nuove prenotazioni complessive. `;
+    }
     
     if (priorData && priorData.ricevute) {
         const pr = priorData.ricevute;

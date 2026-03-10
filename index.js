@@ -81,7 +81,7 @@ cron.schedule('1 0 * * *', async () => {
     const ieri = new Date();
     ieri.setDate(ieri.getDate() - 1);
     await generateAndSendReport(
-        ieri, 
+        { type: 'chiusura', targetDate: ieri }, 
         'vocale_hybrid_ieri.mp3', 
         `📊 Report Giornaliero FastCar - ${ieri.toLocaleDateString()}`, 
         "Ciao Monica e Fabio,\n\nIn allegato il resoconto vocale delle prenotazioni di ieri.\nBuon ascolto e buon lavoro!\n- REPORT PRENOTAZIONI SU BASE MAIL",
@@ -107,7 +107,7 @@ cron.schedule('0 20 * * *', async () => {
     console.log("[CRON 20:00] Esecuzione Report OGGI Sera...");
     const oggi = new Date();
     await generateAndSendReport(
-        oggi, 
+        { type: 'chiusura', targetDate: oggi }, 
         'vocale_hybrid_oggi_20.mp3', 
         `📊 Report Serale FastCar Ore 20:00 - ${oggi.toLocaleDateString()}`, 
         "Ciao Fabio,\n\nIn allegato il resoconto vocale serale sulle prenotazioni arrivate nella giornata di oggi.\nBuona serata!\n- REPORT PRENOTAZIONI SU BASE MAIL",
