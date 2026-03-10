@@ -260,6 +260,14 @@ function buildHybridReportText(type, data, priorData = null, startDate = null) {
     text += sedi.map(([name, count]) => `${count} a ${name}`).join(', ') + '. ';
 
     text += `La clientela è composta da ${r.perGenere.Uomo} uomini e ${r.perGenere.Donna} donne. `;
+    
+    // Aggiunta elenco lavorazioni
+    if (Object.keys(r.perServizio).length > 0) {
+        text += `Ecco infine il dettaglio delle tipologie di lavorazioni richieste: `;
+        const servizi = Object.entries(r.perServizio).sort((a,b) => b[1] - a[1]);
+        text += servizi.map(([name, count]) => `${count} ${name}`).join(', ') + '. ';
+    }
+
     text += `Buon lavoro A TUTTI!`;
 
     return text;
