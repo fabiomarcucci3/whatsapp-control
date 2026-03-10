@@ -47,7 +47,7 @@ async function generateAndSendReport(config, filename, subject, textBody, toEmai
         // 3. Invia Email
         console.log(`[CRON] Spedizione email a: ${toEmails.join(', ')}`);
         await transporter.sendMail({
-            from: `"FastCar Report Agent" <${process.env.IMAP_USER}>`,
+            from: `"REPORT PRENOTAZIONI SU BASE MAIL" <${process.env.IMAP_USER}>`,
             to: toEmails.join(', '),
             subject: subject,
             text: textBody,
@@ -84,7 +84,7 @@ cron.schedule('1 0 * * *', async () => {
         ieri, 
         'vocale_hybrid_ieri.mp3', 
         `📊 Report Giornaliero FastCar - ${ieri.toLocaleDateString()}`, 
-        "Ciao Monica e Fabio,\n\nIn allegato il resoconto vocale delle prenotazioni di ieri.\nBuon ascolto e buon lavoro!\n- FastCar Agent",
+        "Ciao Monica e Fabio,\n\nIn allegato il resoconto vocale delle prenotazioni di ieri.\nBuon ascolto e buon lavoro!\n- REPORT PRENOTAZIONI SU BASE MAIL",
         [DEST_FABIO, DEST_MONICA]
     );
 }, { timezone: "Europe/Rome" });
@@ -97,7 +97,7 @@ cron.schedule('0 12 * * *', async () => {
         oggi, 
         'vocale_hybrid_oggi_12.mp3', 
         `📊 Report Aggiornamento FastCar Ore 12:00 - ${oggi.toLocaleDateString()}`, 
-        "Ciao Fabio,\n\nIn allegato il resoconto vocale aggiornato ad ora (12:00) sulle prenotazioni della giornata di oggi.\nBuon ascolto!\n- FastCar Agent",
+        "Ciao Fabio,\n\nIn allegato il resoconto vocale aggiornato ad ora (12:00) sulle prenotazioni della giornata di oggi.\nBuon ascolto!\n- REPORT PRENOTAZIONI SU BASE MAIL",
         [DEST_FABIO]
     );
 }, { timezone: "Europe/Rome" });
@@ -110,7 +110,7 @@ cron.schedule('0 20 * * *', async () => {
         oggi, 
         'vocale_hybrid_oggi_20.mp3', 
         `📊 Report Serale FastCar Ore 20:00 - ${oggi.toLocaleDateString()}`, 
-        "Ciao Fabio,\n\nIn allegato il resoconto vocale serale sulle prenotazioni arrivate nella giornata di oggi.\nBuona serata!\n- FastCar Agent",
+        "Ciao Fabio,\n\nIn allegato il resoconto vocale serale sulle prenotazioni arrivate nella giornata di oggi.\nBuona serata!\n- REPORT PRENOTAZIONI SU BASE MAIL",
         [DEST_FABIO]
     );
 }, { timezone: "Europe/Rome" });
@@ -126,7 +126,7 @@ cron.schedule('1 0 * * 1', async () => {
         { type: 'weekly', startDate: startWeek, endDate: endWeek }, 
         'vocale_hybrid_settimanale.mp3', 
         `📊 Report Settimanale FastCar (dal ${startWeek.toLocaleDateString()} al ${endWeek.toLocaleDateString()})`, 
-        "Ciao Monica e Fabio,\n\nIn allegato il resoconto vocale della settimana appena conclusa.\nBuon ascolto e buona settimana!\n- FastCar Agent",
+        "Ciao Monica e Fabio,\n\nIn allegato il resoconto vocale della settimana appena conclusa.\nBuon ascolto e buona settimana!\n- REPORT PRENOTAZIONI SU BASE MAIL",
         [DEST_FABIO, DEST_MONICA]
     );
 }, { timezone: "Europe/Rome" });
@@ -158,7 +158,7 @@ cron.schedule('1 0 1 * *', async () => {
         }, 
         'vocale_hybrid_mensile.mp3', 
         `📊 Report Mensile FastCar - Mese di ${startLastMonth.toLocaleString('it-IT', { month: 'long' }).toUpperCase()} ${startLastMonth.getFullYear()}`, 
-        "Ciao Monica e Fabio,\n\nIn allegato il resoconto vocale mensile finale con i dettagli del mese appena concluso.\nBuon lavoro!\n- FastCar Agent",
+        "Ciao Monica e Fabio,\n\nIn allegato il resoconto vocale mensile finale con i dettagli del mese appena concluso.\nBuon lavoro!\n- REPORT PRENOTAZIONI SU BASE MAIL",
         [DEST_FABIO, DEST_MONICA]
     );
 }, { timezone: "Europe/Rome" });
