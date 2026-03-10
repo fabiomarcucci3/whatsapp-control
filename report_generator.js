@@ -243,7 +243,12 @@ async function generateBookingData(startDate, endDate) {
   
   const uniqueBookings = {};
   allBookings.forEach(b => {
-    const key = b.numero || Math.random().toString();
+    // Per gestire il "doppio slot" (stesso ID prenotazione ma due clienti diversi in parallelo), usiamo chiave composita
+    let key;
+    if (b.numero && b.nomeCliente) key = `${b.numero}_${b.nomeCliente}`;
+    else if (b.numero) key = b.numero;
+    else key = Math.random().toString();
+    
     uniqueBookings[key] = b;
   });
   
@@ -317,7 +322,8 @@ function buildReportText(data) {
   
   text += `Oggi hai ricevuto un totale di ${data.totale} nuove prenotazioni`;
   if (data.cancellate > 0) {
-    text += ` e ${data.cancellate} cancellazioni`;
+    const pct = ((data.cancellate / (data.totale + data.cancellate)) * 100).toFixed(1);
+    text += ` e subìto ${data.cancellate} cancellazioni (pari a un tasso di defezione del ${pct} percento)`;
   }
   text += `. L'incasso stimato della giornata è di ${data.incasso} euro, di cui ${data.incassoServizi} euro per i servizi principali e ${data.incassoAggiunti} euro di servizi aggiuntivi. `;
   
@@ -362,8 +368,12 @@ function buildWeeklyReportText(data) {
     text += `Questa settimana non ci sono state registrazioni. Buon proseguimento!`;
     return text;
   }
-  
-  text += `Negli ultimi sette giorni abbiamo elaborato un totale di ${data.totale} nuove prenotazioni e ${data.cancellate} cancellazioni. `;
+  if (data.cancellate > 0) {
+    const pct = ((data.cancellate / (data.totale + data.cancellate)) * 100).toFixed(1);
+    text += `Negli ultimi sette giorni abbiamo elaborato un totale di ${data.totale} nuove prenotazioni. Abbiamo subìto ${data.cancellate} cancellazioni, pari a un tasso di defezione del ${pct} percento sulla mole di lavoro richiesta. `;
+  } else {
+    text += `Negli ultimi sette giorni abbiamo elaborato un totale di ${data.totale} nuove prenotazioni e nessuna cancellazione. `;
+  }
   text += `L'incasso totale stimato della settimana è di ${data.incasso} euro, di cui ${data.incassoServizi} per i servizi principali e ${data.incassoAggiunti} euro di servizi aggiuntivi. `;
   
   text += `Siamo a quota ${data.proprie} appuntamenti nelle officine proprie, e ${data.autorizzate} negli autorizzati. `;
@@ -397,7 +407,10 @@ function buildMonthlyReportText(data, priorData) {
   text += `L'incasso complessivo sviluppato in questi trenta giorni è di ben ${data.incasso} euro totali. Di questi, ${data.incassoAggiunti} euro sono frutto unicamente dei servizi aggiuntivi inseriti a sistema. `;
   
   text += `Delle ${data.totale} lavorazioni, ${data.proprie} si sono tenute nelle tue basi e ${data.autorizzate} negli esterni. `;
-  if (data.cancellate > 0) text += `Abbiamo subìto ${data.cancellate} rinunce, portando a una defezione stima di ${data.perditaCancellazioni} euro. `;
+  if (data.cancellate > 0) {
+    const pct = ((data.cancellate / (data.totale + data.cancellate)) * 100).toFixed(1);
+    text += `Abbiamo subìto ${data.cancellate} rinunce (con un tasso di defezione del ${pct} percento sulle richieste totali), portando a una perdita potenziale di ${data.perditaCancellazioni} euro. `;
+  }
   
   text += `Un grandissimo applauso per gli sforzi di questo mese. Puntiamo diretti a superare questo record il mese prossimo. Buon Lavoro!`;
   return text;
