@@ -8,7 +8,7 @@ const express = require('express');
 // Dummy server HTTP per far felice Render.com ed evitare Error: Exited with status 1
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('WhatsApp/Email Control Server Attivo 🚀'));
+app.get('/', (req, res) => res.send('FastCar Cloud Agent Server Attivo 🚀'));
 
 // Endpoint TEMPORANEO per test manuale dal server
 app.get('/test-server', async (req, res) => {
