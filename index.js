@@ -8,7 +8,32 @@ const express = require('express');
 // Dummy server HTTP per far felice Render.com ed evitare Error: Exited with status 1
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('FastCar Cloud Agent Server Attivo 🚀'));
+app.get('/', (req, res) => res.send('FastCar Cloud Agent Server attivo 🚀'));
+
+// Endpoint per test manuale dal server (versione robusta)
+app.get('/test-server', (req, res) => {
+    console.log("[SERVER] Manual test trigger received via Web. Starting background process...");
+    
+    // Rispondiamo subito al browser per evitare il timeout di Render
+    res.send('<h1>🚀 Test Avviato sul Server!</h1><p>Il processo è partito in background. La mail dovrebbe arrivare a breve su ' + DEST_FABIO + '</p>');
+
+    // Eseguiamo il report in "background" rispetto alla richiesta HTTP
+    (async () => {
+        try {
+            const ieri = new Date();
+            ieri.setDate(ieri.getDate() - 1);
+            await generateAndSendReport(
+                { type: 'chiusura', targetDate: ieri }, 
+                'vocale_test_server_live.mp3', 
+                `📊 TEST LIVE dal Server - ${ieri.toLocaleDateString()}`, 
+                [DEST_FABIO]
+            );
+            console.log("[SERVER] Manual test report sent successfully.");
+        } catch (err) {
+            console.error("[SERVER] Manual test error:", err);
+        }
+    })();
+});
 
 app.listen(port, () => console.log(`[HTTP] Server web avviato sulla porta ${port}`));
 
