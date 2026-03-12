@@ -207,7 +207,8 @@ async function generateHybridData(startDate, endDate) {
     });
 
     return {
-        ricevute: stats
+        ricevute: stats,
+        bookings: arrivateEmails // Aggiungiamo la lista delle prenotazioni validate
     };
 }
 
@@ -282,7 +283,7 @@ function buildHybridReportText(type, data, priorData = null, startDate = null) {
 
 async function getVoiceReport(config = new Date(), customFilename = null) {
     try {
-        let textToSpeak = '', type = 'daily', outputPath = '';
+        let textToSpeak = '', type = 'daily', outputPath = '', data = null;
         if (typeof config === 'string') {
             textToSpeak = config;
             outputPath = (customFilename && path.isAbsolute(customFilename)) ? customFilename : path.join(__dirname, customFilename || 'vocale_custom.mp3');
@@ -292,7 +293,7 @@ async function getVoiceReport(config = new Date(), customFilename = null) {
             const start = config.startDate || config.targetDate;
             const end = config.endDate || config.targetDate;
             
-            const data = await generateHybridData(start, end);
+            data = await generateHybridData(start, end);
             
             let priorData = null;
             if (config.priorStartDate && config.priorEndDate) {
@@ -315,8 +316,12 @@ async function getVoiceReport(config = new Date(), customFilename = null) {
             writeStream.on('error', reject);
         });
         tts.close();
-        return { audioPath: outputPath, text: textToSpeak };
+        return { 
+            audioPath: outputPath, 
+            text: textToSpeak,
+            data: data // Restituiamo i dati estratti (stats + bookings) per evitare ri-download
+        };
     } catch (error) { console.error('❌ Errore Hybrid Agent:', error); throw error; }
 }
 
-module.exports = { getVoiceReport, generateHybridData };
+module.exports = { getVoiceReport, generateHybridData, fetchEmailsFromImap };
