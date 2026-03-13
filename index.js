@@ -12,20 +12,20 @@ app.get('/', (req, res) => res.send('FastCar Cloud Agent Server attivo 🚀'));
 
 // Endpoint per test manuale dal server (versione robusta)
 app.get('/test-server', (req, res) => {
-    console.log("[SERVER] Manual test trigger received via Web. Starting background process...");
+    const target = req.query.today === 'true' ? 'OGGI' : 'IERI';
+    console.log(`[SERVER] Manual test trigger received. Target: ${target}. Starting background process...`);
     
-    // Rispondiamo subito al browser per evitare il timeout di Render
-    res.send('<h1>🚀 Test Avviato sul Server!</h1><p>Il processo è partito in background. La mail dovrebbe arrivare a breve su ' + DEST_FABIO + '</p>');
+    res.send(`<h1>🚀 Test Avviato sul Server!</h1><p>Target: <b>${target}</b>. Il processo è partito in background. La mail dovrebbe arrivare a breve su ${DEST_FABIO}</p>`);
 
-    // Eseguiamo il report in "background" rispetto alla richiesta HTTP
     (async () => {
         try {
-            const ieri = new Date();
-            ieri.setDate(ieri.getDate() - 1);
+            const date = new Date();
+            if (req.query.today !== 'true') date.setDate(date.getDate() - 1);
+            
             await generateAndSendReport(
-                { type: 'chiusura', targetDate: ieri }, 
+                { type: 'chiusura', targetDate: date }, 
                 'vocale_test_server_live.mp3', 
-                `📊 TEST LIVE dal Server - ${ieri.toLocaleDateString()}`, 
+                `📊 TEST LIVE (${target}) - ${date.toLocaleDateString()}`, 
                 [DEST_FABIO]
             );
             console.log("[SERVER] Manual test report sent successfully.");
@@ -33,6 +33,11 @@ app.get('/test-server', (req, res) => {
             console.error("[SERVER] Manual test error:", err);
         }
     })();
+});
+
+// Endpoint di keep-alive per servizi di monitoraggio esterni
+app.get('/ping', (req, res) => {
+    res.status(200).send('PONG - FastCar Agent is awake ⏰');
 });
 
 app.listen(port, () => console.log(`[HTTP] Server web avviato sulla porta ${port}`));
@@ -129,7 +134,7 @@ cron.schedule('1 0 * * *', async () => {
 cron.schedule('0 12 * * *', async () => {
     const oggi = new Date();
     await generateAndSendReport(
-        oggi, 
+        { type: 'daily', targetDate: oggi }, 
         'vocale_update_oggi_12.mp3', 
         `📊 Aggiornamento FastCar Ore 12:00 - ${oggi.toLocaleDateString()}`, 
         [DEST_FABIO]
